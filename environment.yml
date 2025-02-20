@@ -1,0 +1,15 @@
+name: illumine
+dependencies:
+- python=3.11
+- numpy
+- pytorch
+- pip:
+  - notebook
+  - pandas
+  - plotly
+  - scipy
+  - matplotlib
+  - pyepics
+  - ophyd
+  - bluesky
+  - caproto[standard]
