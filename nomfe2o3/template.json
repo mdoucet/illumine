@@ -1,0 +1,65 @@
+{
+    "Facility": "SNS",
+    "Instrument": "NOM",
+    "Title": "NOM_Fe2O3",
+    "Sample": {
+        "Runs": "208519",
+        "Filenames": ["/SNS/users/m2d/git/illumine/nomfe2o3/h5/nom_208518_103.h5"],
+        "Background": {
+            "Runs": "200044",
+            "Background": {
+                "Runs": "200046"
+            }
+        },
+        "Material": "Si",
+        "PackingFraction": 0.51,
+        "Geometry": {
+            "Shape": "Cylinder",
+            "Radius": 0.295,
+            "Height": 1.8
+        },
+        "AbsorptionCorrection": {
+            "Type": "SampleOnly"
+        },
+        "AbsMSParameters": {
+            "ElementSize": 1
+        },
+        "MassDensity": 2.33
+    },
+    "Normalization": {
+        "Runs": "200045",
+        "Background": {
+            "Runs": "200046"
+        },
+        "Material": "V",
+        "PackingFraction": 1,
+        "Geometry": {
+            "Shape": "Cylinder",
+            "Radius": 0.2925,
+            "Height": 1.8
+        },
+        "AbsorptionCorrection": {
+            "Type": "SampleOnly"
+        },
+        "AbsMSParameters": {
+            "ElementSize": 1
+        },
+        "MassDensity": 6.11
+    },
+    "Calibration": {
+        "Filename": "/SNS/NOM/shared/autoreduce/calibration/NOMAD_200043_2024-09-05_shifter.h5"
+    },
+    "Merging": {
+        "QBinning": [
+            0.01,
+            0.005,
+            40
+        ]
+    },
+    "OutputDir": "reduced",
+    "DebugMode": true,
+    "AlignAndFocusArgs": {
+        "TMin": 300,
+        "TMax": 20000
+    }
+}
