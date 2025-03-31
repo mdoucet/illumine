@@ -208,7 +208,7 @@ def series_analyzer(data: list, peaks: list, temp_list: list):
         plt.errorbar(
             temperature,
             integral[i],
-            yerr=err_int[i],
+            #yerr=err_int[i],
             label="%g" % tof[peaks[i]],
         )
         if i == 0:
