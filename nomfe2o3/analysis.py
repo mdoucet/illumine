@@ -223,7 +223,7 @@ def series_analyzer(data: list, peaks: list, temp_list: list):
             label="%g" % tof[peaks[i]],
         )
         if i == 0:
-            plt.title('center')
+            plt.title('Center')
 
         plt.subplot(n_tot, n_pars, n_pars * i + 3)
         plt.errorbar(
