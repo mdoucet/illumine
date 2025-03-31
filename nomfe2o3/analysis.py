@@ -71,16 +71,17 @@ def load_data(data_dir: str, bank: int = 2) -> list:
     return temps, ramp
 
 
+# Define a Gaussian function
+def gaussian(x, amp, cen, wid, bck):
+    return amp * np.exp(-((x - cen) ** 2) / (2 * wid**2)) + bck
+
+
 def peak_finder(tof, counts, peak_prominence: float = 2):
     # Identify peaks in the counts data
     peaks, _ = find_peaks(counts, prominence=2)
 
     plt.figure(figsize=(10, 6))
     plt.plot(tof, counts, linestyle="--")
-
-    # Define a Gaussian function
-    def gaussian(x, amp, cen, wid, bck):
-        return amp * np.exp(-((x - cen) ** 2) / (2 * wid**2)) + bck
 
     integral = []
     center = []
@@ -114,3 +115,83 @@ def peak_finder(tof, counts, peak_prominence: float = 2):
     plt.ylabel("Counts")
     plt.show()
     return peaks
+
+
+def series_analyzer(data: list, peaks: list, temp_list: list):
+    integral = []
+    err_int = []
+    center = []
+    temperature = []
+    chi2 = []
+
+    print("Number of peaks", len(peaks))
+    for i, temp_data in enumerate(data):
+        tof = temp_data[0]
+        counts = temp_data[1]
+        integral_for_temp = []
+        err_for_temp = []
+        skip_point = False
+
+        for peak in tof[peaks]:
+            # Fit a Gaussian to each peak
+            delta = tof / 20
+            mask = (tof > peak - delta) & (tof < peak + delta)
+            
+            try:
+                popt, pcov = curve_fit(
+                    gaussian,
+                    tof[mask],
+                    counts[mask],
+                    p0=[counts[mask].max(), peak, 10, counts[mask].min()],
+                )
+                perr = np.sqrt(np.diag(pcov))
+                a = np.fabs(popt[0] * popt[2] * np.sqrt(2 * np.pi))
+                err_a = np.sqrt(2 * np.pi) * np.sqrt(
+                    popt[0] ** 2 * perr[2] ** 2 + popt[2] ** 2 * perr[0] ** 2
+                )
+
+                _chi2 = np.mean(np.asarray(gaussian(tof[mask], *popt) - counts[mask])**2)
+            except:
+                print(f"Failed to fit peak at {peak}")
+                a = 0
+                err_a = 0
+                _chi2 = 0
+                continue
+    
+            # If the error is too large, we will skip this point
+            if err_a > a / 10.0:
+                skip_point = True
+
+            integral_for_temp.append(a)
+            err_for_temp.append(err_a)
+            # center.append(popt[1])
+
+        if not skip_point:
+            temperature.append(temp_list[i])
+            integral.append(integral_for_temp)
+            err_int.append(err_for_temp)
+            chi2.append(_chi2)
+
+    integral = np.asarray(integral).T
+    err_int = np.asarray(err_int).T
+    print(chi2)
+
+    # Skip 15
+    n_tot = len(peaks)
+    ysize = 2 * n_tot
+    fig, axs = plt.subplots(n_tot, 1, dpi=100, figsize=(7, ysize), sharex=True)
+
+    for i in range(len(peaks)):
+        plt.subplot(n_tot, 1, i + 1)
+        # plt.plot(temperature, integral[i], label='%g' % tof[peaks[i]])
+        plt.errorbar(
+            temperature, integral[i], yerr=err_int[i], label="%g" % tof[peaks[i]]
+        )
+        plt.legend(frameon=False)
+    plt.xlabel("Temperature")
+    plt.ylabel("Peak integral")
+    # plt.yscale('log')
+    plt.legend(frameon=False)
+    plt.show()
+
+    return temperature, integral, err_int
