@@ -121,6 +121,8 @@ def series_analyzer(data: list, peaks: list, temp_list: list):
     integral = []
     err_int = []
     center = []
+    background = []
+    width = []
     temperature = []
     chi2 = []
 
@@ -131,17 +133,20 @@ def series_analyzer(data: list, peaks: list, temp_list: list):
         err_counts = temp_data[2]
         integral_for_temp = []
         err_for_temp = []
+        center_for_temp = []
+        width_for_temp = []
+        background_for_temp = []
         skip_point = False
-        
-        #print(np.mean(err_counts/counts))
-        if np.mean(err_counts/counts) > .8:
+
+        # print(np.mean(err_counts/counts))
+        if np.mean(err_counts / counts) > 0.8:
             continue
 
         for peak in tof[peaks]:
             # Fit a Gaussian to each peak
             delta = tof / 20 - 5
             mask = (tof > peak - delta) & (tof < peak + delta)
-            
+
             try:
                 popt, pcov = curve_fit(
                     gaussian,
@@ -155,50 +160,96 @@ def series_analyzer(data: list, peaks: list, temp_list: list):
                     popt[0] ** 2 * perr[2] ** 2 + popt[2] ** 2 * perr[0] ** 2
                 )
 
-                _chi2 = np.mean(np.asarray(gaussian(tof[mask], *popt) - counts[mask])**2)
+                _chi2 = np.mean(
+                    np.asarray(gaussian(tof[mask], *popt) - counts[mask]) ** 2
+                )
             except:
                 print(f"Failed to fit peak at {peak}")
                 a = 0
                 err_a = 0
                 _chi2 = 0
                 continue
-    
+
             # If the error is too large, we will skip this point
-            #if err_a > a / 10.0:
+            # if err_a > a / 10.0:
             #    skip_point = True
 
             integral_for_temp.append(a)
             err_for_temp.append(err_a)
-            # center.append(popt[1])
+            center_for_temp.append(popt[1])
+            width_for_temp.append(popt[2])
+            background_for_temp.append(popt[3])
 
         if not skip_point:
             temperature.append(temp_list[i])
             integral.append(integral_for_temp)
             err_int.append(err_for_temp)
             chi2.append(_chi2)
+            width.append(width_for_temp)
+            center.append(center_for_temp)
+            background.append(background_for_temp)
 
     integral = np.asarray(integral).T
     err_int = np.asarray(err_int).T
     temperature = np.asarray(temperature)
+    width = np.asarray(width).T
+    center = np.asarray(center).T
+    background = np.asarray(background).T
 
     n_tot = len(peaks)
+
+    n_pars = 4
+
     ysize = 2 * n_tot
-    fig, axs = plt.subplots(n_tot, 1, dpi=100, figsize=(7, ysize), sharex=True)
+    fig, axs = plt.subplots(n_tot, n_pars, dpi=100, figsize=(10, ysize), sharex=True)
 
     for i in range(len(peaks)):
-        plt.subplot(n_tot, 1, i + 1)
-        # plt.plot(temperature, integral[i], label='%g' % tof[peaks[i]])
+        plt.subplot(n_tot, n_pars, n_pars * i + 1)
+        plt.errorbar(
+            temperature,
+            integral[i],
+            yerr=err_int[i],
+            label="%g" % tof[peaks[i]],
+        )
+        if i == 0:
+            plt.title('Integral')
+        plt.legend(frameon=False)
 
-        mask = err_int[i] < integral[i]/2.0
-        if len(temperature[mask]) > 0:
-            plt.errorbar(
-                temperature[mask], integral[i][mask], yerr=err_int[i][mask], label="%g" % tof[peaks[i]]
-            )
-            plt.legend(frameon=False)
+        plt.subplot(n_tot, n_pars, n_pars * i + 2)
+        plt.errorbar(
+            temperature,
+            center[i],
+            #yerr=err_int[i][mask],
+            label="%g" % tof[peaks[i]],
+        )
+        if i == 0:
+            plt.title('center')
+
+        plt.subplot(n_tot, n_pars, n_pars * i + 3)
+        plt.errorbar(
+            temperature,
+            width[i],
+            #yerr=err_int[i][mask],
+            label="%g" % tof[peaks[i]],
+        )
+        if i == 0:
+            plt.title('Width')
+
+        plt.subplot(n_tot, n_pars, n_pars * i + 4)
+        plt.errorbar(
+            temperature,
+            background[i],
+            #yerr=err_int[i][mask],
+            label="%g" % tof[peaks[i]],
+        )
+        if i == 0:
+            plt.title('Background')
+
+
+
     plt.xlabel("Temperature")
-    plt.ylabel("Peak integral")
+    #plt.ylabel("Peak integral")
     # plt.yscale('log')
-    plt.legend(frameon=False)
     plt.show()
 
-    return temperature, integral, err_int
+    return temperature, integral, err_int, center, width, background
