@@ -128,13 +128,18 @@ def series_analyzer(data: list, peaks: list, temp_list: list):
     for i, temp_data in enumerate(data):
         tof = temp_data[0]
         counts = temp_data[1]
+        err_counts = temp_data[2]
         integral_for_temp = []
         err_for_temp = []
         skip_point = False
+        
+        #print(np.mean(err_counts/counts))
+        if np.mean(err_counts/counts) > .8:
+            continue
 
         for peak in tof[peaks]:
             # Fit a Gaussian to each peak
-            delta = tof / 20
+            delta = tof / 20 - 5
             mask = (tof > peak - delta) & (tof < peak + delta)
             
             try:
@@ -159,8 +164,8 @@ def series_analyzer(data: list, peaks: list, temp_list: list):
                 continue
     
             # If the error is too large, we will skip this point
-            if err_a > a / 10.0:
-                skip_point = True
+            #if err_a > a / 10.0:
+            #    skip_point = True
 
             integral_for_temp.append(a)
             err_for_temp.append(err_a)
@@ -174,9 +179,8 @@ def series_analyzer(data: list, peaks: list, temp_list: list):
 
     integral = np.asarray(integral).T
     err_int = np.asarray(err_int).T
-    print(chi2)
+    temperature = np.asarray(temperature)
 
-    # Skip 15
     n_tot = len(peaks)
     ysize = 2 * n_tot
     fig, axs = plt.subplots(n_tot, 1, dpi=100, figsize=(7, ysize), sharex=True)
@@ -184,10 +188,13 @@ def series_analyzer(data: list, peaks: list, temp_list: list):
     for i in range(len(peaks)):
         plt.subplot(n_tot, 1, i + 1)
         # plt.plot(temperature, integral[i], label='%g' % tof[peaks[i]])
-        plt.errorbar(
-            temperature, integral[i], yerr=err_int[i], label="%g" % tof[peaks[i]]
-        )
-        plt.legend(frameon=False)
+
+        mask = err_int[i] < integral[i]/2.0
+        if len(temperature[mask]) > 0:
+            plt.errorbar(
+                temperature[mask], integral[i][mask], yerr=err_int[i][mask], label="%g" % tof[peaks[i]]
+            )
+            plt.legend(frameon=False)
     plt.xlabel("Temperature")
     plt.ylabel("Peak integral")
     # plt.yscale('log')
